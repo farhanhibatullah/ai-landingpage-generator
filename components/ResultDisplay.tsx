@@ -9,30 +9,61 @@ interface ResultDisplayProps {
 export const ResultDisplay: React.FC<ResultDisplayProps> = ({ data }) => {
   const [activeTab, setActiveTab] = useState<'preview' | 'strategy' | 'code'>('preview');
 
+  // Preview environment with enhanced support for dynamic fonts and backgrounds
   const fullIframeDoc = `
     <!DOCTYPE html>
-    <html lang="en">
+    <html lang="en" class="scroll-smooth">
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>LanderGen AI - Preview</title>
+      <title>LanderGen AI - Dynamic Architecture</title>
       <script src="https://cdn.tailwindcss.com"></script>
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet">
+      
+      <!-- AOS Library -->
+      <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+      
       <style>
-        body { font-family: 'Inter', sans-serif; }
-        h1, h2, h3, h4, h5, h6 { font-family: 'Plus Jakarta Sans', sans-serif; }
-        main { min-height: 100vh; }
+        /* Default base styling that doesn't override model's specific font choices */
+        body { margin: 0; padding: 0; overflow-x: hidden; }
+        main { min-height: 100vh; position: relative; }
+        
+        /* Smooth interactions */
+        * { transition: background-color 0.3s ease, border-color 0.3s ease; }
+        
+        /* Glassmorphism utility */
+        .glass {
+          background: rgba(255, 255, 255, 0.03);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .dark .glass {
+          background: rgba(0, 0, 0, 0.2);
+          border: 1px solid rgba(255, 255, 255, 0.05);
+        }
       </style>
     </head>
-    <body class="bg-white dark:bg-slate-950 transition-colors duration-300">
+    <body class="bg-white dark:bg-slate-950">
+      <!-- The model provides HTML including its own <link> for fonts and its own <style> for background variables -->
       ${data.previewHtml}
+
+      <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+      <script>
+        AOS.init({
+          duration: 1000,
+          easing: 'ease-in-out-quint',
+          once: false,
+          offset: 80,
+          mirror: true
+        });
+      </script>
     </body>
     </html>
   `;
 
   const downloadCode = () => {
-    // Attempt to extract the main index.html block from markdown
     const match = data.code.match(/```html([\s\S]*?)```/i);
     const content = match ? match[1].trim() : data.code;
     
@@ -85,9 +116,9 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({ data }) => {
             <button
               onClick={openInNewTab}
               className="flex-1 sm:flex-none p-3 text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-white dark:hover:bg-slate-800 rounded-xl transition-all border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
-              title="Open in New Tab"
+              title="Open in New Tab (Full Motion)"
             >
-              <i className="fas fa-up-right-from-square"></i>
+              <i className="fas fa-expand"></i>
             </button>
           )}
           <button
@@ -101,8 +132,8 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({ data }) => {
             onClick={downloadCode}
             className="flex-1 sm:flex-none flex items-center justify-center space-x-3 px-6 py-3 bg-indigo-600 text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-600/10"
           >
-            <i className="fas fa-file-export"></i>
-            <span>Export HTML</span>
+            <i className="fas fa-bolt"></i>
+            <span>Get Code</span>
           </button>
         </div>
       </div>
@@ -122,11 +153,11 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({ data }) => {
           <div className="p-10 max-w-4xl mx-auto space-y-10 animate-in fade-in duration-500">
             <div className="flex items-center space-x-5">
                <div className="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center text-white text-2xl shadow-xl shadow-indigo-500/20">
-                 <i className="fas fa-shield-halved"></i>
+                 <i className="fas fa-palette"></i>
                </div>
                <div>
-                 <h2 className="text-2xl font-heading font-extrabold text-slate-900 dark:text-white">Strategy Synthesis</h2>
-                 <p className="text-slate-500 dark:text-slate-400 text-sm">Targeted insights and architectural roadmap.</p>
+                 <h2 className="text-2xl font-heading font-extrabold text-slate-900 dark:text-white">Visual DNA</h2>
+                 <p className="text-slate-500 dark:text-slate-400 text-sm">How your branding and motion drive user emotion.</p>
                </div>
             </div>
             <div className="bg-slate-50 dark:bg-slate-900/50 rounded-[2rem] border border-slate-200 dark:border-slate-800 p-8">
@@ -147,7 +178,7 @@ export const ResultDisplay: React.FC<ResultDisplayProps> = ({ data }) => {
                  <div className="w-3 h-3 rounded-full bg-yellow-500/30"></div>
                  <div className="w-3 h-3 rounded-full bg-green-500/30"></div>
                </div>
-               <span className="text-slate-500 text-[10px] font-sans font-bold uppercase tracking-widest">Architectural_Bundle.zip</span>
+               <span className="text-slate-500 text-[10px] font-sans font-bold uppercase tracking-widest">Master_Asset.html</span>
             </div>
             <pre className="p-8 pt-6 text-indigo-300 leading-relaxed overflow-auto max-h-[calc(100%-48px)] whitespace-pre custom-scrollbar">
               {data.code}

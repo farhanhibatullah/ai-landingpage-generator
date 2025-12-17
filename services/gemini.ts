@@ -1,56 +1,143 @@
 
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 import { UserInput, LandingPageData } from "../types";
 
 const API_KEY = process.env.API_KEY || "";
 
+/**
+ * Translates specific fields of UserInput to English using Gemini.
+ * Kept as a helper tool for users who want to "English-ify" their prompts.
+ */
+export const translateInputToEnglish = async (input: Partial<UserInput>): Promise<Partial<UserInput>> => {
+  const ai = new GoogleGenAI({ apiKey: API_KEY });
+  
+  const prompt = `
+    Translate the following landing page project details into professional, concise English. 
+    Maintain the core meaning and proper nouns (like brand names).
+    
+    Details to translate:
+    ${input.businessIdea ? `Business Idea: ${input.businessIdea}` : ''}
+    ${input.targetAudience ? `Target Audience: ${input.targetAudience}` : ''}
+    ${input.primaryGoal ? `Primary Goal: ${input.primaryGoal}` : ''}
+    ${input.extraNotes ? `Additional Requirements: ${input.extraNotes}` : ''}
+
+    Return the result as a JSON object with these keys: businessIdea, targetAudience, primaryGoal, extraNotes.
+    ONLY return the JSON. No markdown.
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+      },
+    });
+
+    const translated = JSON.parse(response.text);
+    return {
+      businessIdea: translated.businessIdea || input.businessIdea,
+      targetAudience: translated.targetAudience || input.targetAudience,
+      primaryGoal: translated.primaryGoal || input.primaryGoal,
+      extraNotes: translated.extraNotes || input.extraNotes,
+    };
+  } catch (error) {
+    console.error("Translation Error:", error);
+    return input; // Fallback to original
+  }
+};
+
+/**
+ * Gets AI-powered section recommendations. 
+ * Detects the language of the input and responds in that same language.
+ */
+export const getSectionRecommendations = async (businessIdea: string, primaryGoal: string): Promise<string[]> => {
+  const ai = new GoogleGenAI({ apiKey: API_KEY });
+  
+  const prompt = `
+    Analyze this business idea: "${businessIdea}" with the goal of "${primaryGoal}".
+    
+    TASK:
+    1. Detect the language used in the business idea above.
+    2. Suggest 6 specific, high-conversion sections for a landing page.
+    3. IMPORTANT: Respond in the EXACT SAME LANGUAGE as the input business idea (e.g., if it's Indonesian, suggest in Indonesian).
+    
+    Format: Return ONLY a JSON array of strings.
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.ARRAY,
+          items: { type: Type.STRING }
+        }
+      },
+    });
+
+    return JSON.parse(response.text);
+  } catch (error) {
+    console.error("Recommendation Error:", error);
+    return [
+      "Hero Section",
+      "Features",
+      "Testimonials",
+      "How It Works",
+      "Pricing",
+      "CTA"
+    ];
+  }
+};
+
+/**
+ * AI Landing Page Generation Service
+ * Now supports strictly defined target languages for all generated copy.
+ */
 export const generateLandingPage = async (input: UserInput): Promise<LandingPageData> => {
   const ai = new GoogleGenAI({ apiKey: API_KEY });
   
+  const targetLang = input.targetLanguage || 'English';
+
   const systemInstruction = `
-ROLE: AI Landing Page Architect.
+ROLE: AI Landing Page Architect (Strict Multilingual Generation).
 
-You are generating content for a system with a strict regex-based text parser. 
-The headers MUST be exactly as shown below, on their own lines, with no markdown (like # or *) preceding them.
+CRITICAL DIRECTIVES:
+1. OUTPUT LANGUAGE: You MUST write all the text content (Headlines, Paragraphs, Buttons, Captions) in the ${targetLang} language.
+2. Even if the user input is in another language, the FINAL landing page output must be in ${targetLang}.
+3. Implement EVERY SINGLE SECTION mentioned in the "Additional Requirements".
+4. Use contextual Unsplash image URLs: https://images.unsplash.com/photo-[ID]?auto=format&fit=crop&q=80&w=1200.
 
 ━━━━━━━━━━━━━━━━━━━━━━
-OUTPUT STRUCTURE CONTRACT (MANDATORY)
+OUTPUT STRUCTURE CONTRACT
 ━━━━━━━━━━━━━━━━━━━━━━
-
-You must include ALL three sections in this exact order:
-
-=== PREVIEW ===
-[Provide RAW HTML here. Start with <main> and end with </main>. Use Tailwind classes. No markdown blocks.]
-
-=== STRATEGY ===
-[Provide marketing strategy, value prop, and audience details in plain text.]
-
-=== CODE ===
-[Provide the full production source code (index.html, script.js, etc.) using standard markdown code blocks.]
+You must include ALL four sections in this order:
+=== PREVIEW === [HTML with Tailwind]
+=== STRATEGY === [Marketing logic in ${targetLang}]
+=== IMAGE_LOG === [Keywords used]
+=== CODE === [Full HTML source]
 
 ━━━━━━━━━━━━━━━━━━━━━━
 DESIGN CONSTRAINTS
 ━━━━━━━━━━━━━━━━━━━━━━
-- Style: Modern SaaS (inspired by Linear, Vercel, Framer).
-- Dark/Light mode: Support both using Tailwind's 'dark' class or CSS variables.
-- Accent color: ${input.colorPreference || '#4F46E5'}.
-- Typography: Headings: Plus Jakarta Sans; Body: Inter.
-- Animation: Subtle entrance animations (CSS or simple JS).
-
-IMPORTANT: 
-Do not write anything outside of these three blocks. 
-Never leave a section empty. 
-If the model is struggling, provide a simplified high-quality fallback rather than an error.
+- Primary Accent: ${input.colorPreference || "#4F46E5"}.
+- Use this color for backgrounds, gradients, and UI elements to create a branded look.
+- Use 'data-aos' for animations.
   `;
 
   const prompt = `
-    Generate a landing page architecture for:
-    Business Idea: ${input.businessIdea}
-    Target Audience: ${input.targetAudience}
-    Primary Goal: ${input.primaryGoal}
-    Tone & Style: ${input.toneStyle}
-    Accent Color: ${input.colorPreference || "Indigo"}
-    Notes: ${input.extraNotes || "None"}
+    Generate a complete landing page in ${targetLang} following this BLUEPRINT:
+    
+    - Business: ${input.businessIdea}
+    - Audience: ${input.targetAudience}
+    - Goal: ${input.primaryGoal}
+    - Required Sections: ${input.extraNotes || "Standard layout"}
+    - Theme: ${input.toneStyle}
+    - Accent Color: ${input.colorPreference}
+    
+    Ensure all copy is fluent, natural, and persuasive in ${targetLang}.
   `;
 
   try {
@@ -66,7 +153,6 @@ If the model is struggling, provide a simplified high-quality fallback rather th
     const text = response.text;
     if (!text) throw new Error("The AI Engine returned an empty response.");
 
-    // Improved regex-based extraction for robustness against markdown headers or whitespace variations
     const extract = (blockName: string, nextBlockName?: string): string => {
       const escapedBlock = blockName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const escapedNext = nextBlockName ? nextBlockName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : '$';
@@ -76,37 +162,17 @@ If the model is struggling, provide a simplified high-quality fallback rather th
     };
 
     let previewHtml = extract("=== PREVIEW ===", "=== STRATEGY ===");
-    let strategy = extract("=== STRATEGY ===", "=== CODE ===");
+    let strategy = extract("=== STRATEGY ===", "=== IMAGE_LOG ===");
     let code = extract("=== CODE ===");
 
-    // Fallback parsing if explicit headers are slightly different (e.g. model added markdown)
-    if (!previewHtml) previewHtml = extract("PREVIEW", "STRATEGY");
-    if (!strategy) strategy = extract("STRATEGY", "CODE");
-    if (!code) code = extract("CODE");
-
-    // Final Validation and Fallback to prevent blank screens
     if (!previewHtml) {
-      previewHtml = `
-<main class="min-h-screen flex items-center justify-center p-8 bg-slate-50 dark:bg-slate-950">
-  <div class="max-w-md text-center space-y-6">
-    <div class="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mx-auto">
-      <i class="fas fa-triangle-exclamation text-amber-600"></i>
-    </div>
-    <h1 class="text-3xl font-heading font-extrabold text-slate-900 dark:text-white">Preview Partial</h1>
-    <p class="text-slate-600 dark:text-slate-400">The architecture was synthesized, but the visual preview required manual repair. Please check the "Code" tab for full source.</p>
-    <a href="#" class="inline-block px-8 py-4 bg-indigo-600 text-white rounded-xl font-bold">Try Refreshing</a>
-  </div>
-</main>`;
-    }
-
-    if (!code) {
-      code = "/* Source code extraction failed. Please check the full response below: */\n\n" + text;
+      previewHtml = `<main class="h-screen flex items-center justify-center bg-slate-900 text-white"><h1>Structural Synthesis Failure. Please try again.</h1></main>`;
     }
 
     return {
       previewHtml,
-      strategy: strategy || "Detailed strategy breakdown was not formatted correctly by the engine.",
-      code: code
+      strategy: strategy || "Strategy generation in progress...",
+      code: code || "/* Code generation in progress... */"
     };
 
   } catch (error: any) {
