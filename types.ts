@@ -35,7 +35,7 @@ export enum GenerationStatus {
   ERROR = 'ERROR'
 }
 
-export type Page = 'home' | 'templates' | 'resources' | 'pricing';
+export type Page = 'home' | 'templates' | 'resources' | 'pricing' | 'auth';
 
 export interface Template {
   id: string;

@@ -49,7 +49,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
   };
 
   return (
-    <div className="min-h-screen flex flex-col transition-colors duration-300 bg-white dark:bg-slate-950">
+    <div className="min-h-screen flex flex-col transition-colors duration-300 bg-white dark:bg-slate-950 font-sans">
       <header className="bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           <div 
@@ -115,7 +115,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
               <i className={`fas ${isDark ? 'fa-sun' : 'fa-moon'}`}></i>
             </button>
             <button 
-              onClick={() => onNavigate('home')}
+              onClick={() => onNavigate('auth')}
               className="hidden md:block bg-indigo-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-600/10"
             >
               {t('nav_get_started')}

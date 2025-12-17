@@ -6,6 +6,7 @@ import { ResultDisplay } from './components/ResultDisplay';
 import { TemplatesPage } from './components/TemplatesPage';
 import { ResourcesPage } from './components/ResourcesPage';
 import { PricingPage } from './components/PricingPage';
+import { AuthPage } from './components/AuthPage';
 import { UserInput, LandingPageData, GenerationStatus, Template, Page } from './types';
 import { generateLandingPage } from './services/gemini';
 import { useLanguage } from './context/LanguageContext';
@@ -53,8 +54,15 @@ const App: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleAuthSuccess = () => {
+    setCurrentPage('home');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const renderContent = () => {
     switch (currentPage) {
+      case 'auth':
+        return <AuthPage onSuccess={handleAuthSuccess} onNavigateHome={() => setCurrentPage('home')} />;
       case 'templates':
         return <TemplatesPage onUseTemplate={handleUseTemplate} />;
       case 'resources':
